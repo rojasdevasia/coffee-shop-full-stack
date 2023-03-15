@@ -35,6 +35,7 @@ with app.app_context():
 '''
 # GET /drinks
 @app.route('/drinks', methods=['GET'])
+# @requires_auth('get:drinks')
 def get_drinks():
     try:
         drinks=Drink.query.all()
@@ -58,8 +59,8 @@ def get_drinks():
 '''
 #GET /drinks-detail
 @app.route('/drinks-detail',methods=['GET'])
-@requires_auth('get:drinks-detail')
-def get_drinks_detail(f):
+# @requires_auth('get:drinks-detail')
+def get_drinks_detail(payload):
     try:
         drinks=Drink.query.all()
         drinks_long=[drink.long() for drink in drinks]
@@ -83,11 +84,17 @@ def get_drinks_detail(f):
 '''
 #POST /drinks
 @app.route('/drinks',methods=['POST'])
-@requires_auth('get:drinks-detail')
-@cross_origin()
-def add_drinks():
+@requires_auth('post:drinks')
+# @cross_origin()
+def add_drinks(payload):
+    body=request.get_json()
     try:
-        drinks={}
+        title=body.get('title',None)
+        recipe=body.get('recipe',None)
+        drink=Drink(title=title,recipe=recipe)
+        drink.insert()
+
+        drinks=Drink.query.all()
         return jsonify({
             "success": True, 
             "drinks": drinks
@@ -108,13 +115,23 @@ def add_drinks():
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks/<int:id>',methods=['PATCH'])
-@cross_origin()
-def update_drinks():
+@requires_auth('patch:drinks')
+def update_drinks(payload,id):
     try:
-        drinks={}
+        drink=Drink.query.filter(Drink.id == id).one_or_none()
+
+        if drink is None:
+            abort(404)
+        else:
+            body=request.get_json()
+            title=body.get('title',None)
+            recipe=body.get('recipe',None)
+            
+            drink.update(title=title,recipe=recipe)
+
         return jsonify({
             "success": True, 
-            "drinks": drinks
+            "drinks": Drink.query.all()
         })
     except Exception as e:
         print(e)
@@ -130,7 +147,24 @@ def update_drinks():
     returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
         or appropriate status code indicating reason for failure
 '''
+@app.route('/drinks/<int:id>',methods=['DELETE'])
+@requires_auth('delete:drinks')
+def delete_drinks(payload,id):
+    try:
+        drink=Drink.query.filter(Drink.id == id).one_or_none()
 
+        if drink is None:
+            abort(404)
+        else:
+            drink.delete()
+
+        return jsonify({
+            "success": True, 
+            "drinks": id
+        })
+    except Exception as e:
+        print(e)
+        abort(404) 
 
 # Error Handling
 '''
@@ -147,27 +181,45 @@ def unprocessable(error):
     }), 422
 
 
-'''
-@TODO implement error handlers using the @app.errorhandler(error) decorator
-    each error handler should return (with approprate messages):
-             jsonify({
-                    "success": False,
-                    "error": 404,
-                    "message": "resource not found"
-                    }), 404
+@app.errorhandler(401)
+def unprocessable(error):
+    return jsonify({
+        "success": False,
+        "error": 401,
+        "message": "unauthorized"
+    }), 401
 
-'''
+@app.errorhandler(403)
+def unprocessable(error):
+    return jsonify({
+        "success": False,
+        "error": 403,
+        "message": "forbidden access"
+    }), 403
 
-'''
-@TODO implement error handler for 404
-    error handler should conform to general task above
-'''
+@app.errorhandler(404)
+def unprocessable(error):
+    return jsonify({
+        "success": False,
+        "error": 404,
+        "message": "not found"
+    }), 404
 
+@app.errorhandler(405)
+def unprocessable(error):
+    return jsonify({
+        "success": False,
+        "error": 405,
+        "message": "not allowed"
+    }), 405
 
-'''
-@TODO implement error handler for AuthError
-    error handler should conform to general task above
-'''
+@app.errorhandler(AuthError)
+def authorization_error(error):
+    return jsonify({
+        "success": False,
+        "error": error.status_code,
+        "message": error.error_description
+    }), error.status_code
 
 # if __name__ == '__main__':
 #   app.run(host='0.0.0.0', port=30006, debug=True)
