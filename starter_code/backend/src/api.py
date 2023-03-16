@@ -35,7 +35,6 @@ with app.app_context():
 '''
 # GET /drinks
 @app.route('/drinks', methods=['GET'])
-# @requires_auth('get:drinks')
 def get_drinks():
     try:
         drinks=Drink.query.all()
@@ -60,7 +59,7 @@ def get_drinks():
 #GET /drinks-detail
 @app.route('/drinks-detail',methods=['GET'])
 # @requires_auth('get:drinks-detail')
-def get_drinks_detail(payload):
+def get_drinks_detail():
     try:
         drinks=Drink.query.all()
         drinks_long=[drink.long() for drink in drinks]
@@ -91,13 +90,13 @@ def add_drinks(payload):
     try:
         title=body.get('title',None)
         recipe=body.get('recipe',None)
-        drink=Drink(title=title,recipe=recipe)
+        drink=Drink(title=title,recipe=json.dumps(recipe))
         drink.insert()
 
-        drinks=Drink.query.all()
+        drinks=Drink.query.filter(Drink.id == drink.id).one_or_none()
         return jsonify({
             "success": True, 
-            "drinks": drinks
+            "drinks": [drinks.long()]
         })
     except Exception as e:
         print(e)
@@ -127,7 +126,7 @@ def update_drinks(payload,id):
             title=body.get('title',None)
             recipe=body.get('recipe',None)
             
-            drink.update(title=title,recipe=recipe)
+            drink.update(title=title,recipe=json.dumps(recipe))
 
         return jsonify({
             "success": True, 
@@ -218,7 +217,7 @@ def authorization_error(error):
     return jsonify({
         "success": False,
         "error": error.status_code,
-        "message": error.error_description
+        "message": error.error['description']
     }), error.status_code
 
 # if __name__ == '__main__':
