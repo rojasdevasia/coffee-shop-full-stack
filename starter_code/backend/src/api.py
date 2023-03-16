@@ -83,24 +83,30 @@ def get_drinks_detail():
 '''
 #POST /drinks
 @app.route('/drinks',methods=['POST'])
-@requires_auth('post:drinks')
+@requires_auth("post:drinks")
 # @cross_origin()
 def add_drinks(payload):
     body=request.get_json()
     try:
         title=body.get('title',None)
+        print(title)
         recipe=body.get('recipe',None)
+        print(recipe)
         drink=Drink(title=title,recipe=json.dumps(recipe))
         drink.insert()
-
+        print(drink.id)
         drinks=Drink.query.filter(Drink.id == drink.id).one_or_none()
+
+        if drinks is None:
+            abort(404)
+
         return jsonify({
             "success": True, 
             "drinks": [drinks.long()]
         })
     except Exception as e:
         print(e)
-        abort(404)  
+        abort(422)  
 
 '''
 @TODO implement endpoint
@@ -114,7 +120,7 @@ def add_drinks(payload):
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks/<int:id>',methods=['PATCH'])
-@requires_auth('patch:drinks')
+@requires_auth("patch:drinks")
 def update_drinks(payload,id):
     try:
         drink=Drink.query.filter(Drink.id == id).one_or_none()
@@ -125,13 +131,17 @@ def update_drinks(payload,id):
             body=request.get_json()
             title=body.get('title',None)
             recipe=body.get('recipe',None)
-            
             drink.update(title=title,recipe=json.dumps(recipe))
+            
+            drinks=Drink.query.filter(Drink.id == drink.id).one_or_none()
 
-        return jsonify({
+            if drinks is None:
+                abort(404)
+
+            return jsonify({
             "success": True, 
-            "drinks": Drink.query.all()
-        })
+            "drinks": [drinks.long()]
+            })
     except Exception as e:
         print(e)
         abort(404) 
@@ -147,7 +157,7 @@ def update_drinks(payload,id):
         or appropriate status code indicating reason for failure
 '''
 @app.route('/drinks/<int:id>',methods=['DELETE'])
-@requires_auth('delete:drinks')
+@requires_auth("delete:drinks")
 def delete_drinks(payload,id):
     try:
         drink=Drink.query.filter(Drink.id == id).one_or_none()
@@ -157,13 +167,13 @@ def delete_drinks(payload,id):
         else:
             drink.delete()
 
-        return jsonify({
+            return jsonify({
             "success": True, 
-            "drinks": id
-        })
+            "delete": id
+            })
     except Exception as e:
         print(e)
-        abort(404) 
+        abort(422) 
 
 # Error Handling
 '''
@@ -188,6 +198,14 @@ def unprocessable(error):
         "message": "unauthorized"
     }), 401
 
+@app.errorhandler(400)
+def bad_request(error):
+    return jsonify({
+        "success": False,
+        "error": 401,
+        "message": "bad request"
+    }), 401
+
 @app.errorhandler(403)
 def unprocessable(error):
     return jsonify({
@@ -210,6 +228,14 @@ def unprocessable(error):
         "success": False,
         "error": 405,
         "message": "not allowed"
+    }), 405
+
+@app.errorhandler(500)
+def internal_server_error(error):
+    return jsonify({
+        "success": False,
+        "error": 405,
+        "message": "internal server error"
     }), 405
 
 @app.errorhandler(AuthError)

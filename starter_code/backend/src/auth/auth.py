@@ -33,7 +33,7 @@ def get_token_auth_header():
         }, 401)
    
    parts=auth.split()
-   if parts[0].lower() != 'beaerer':
+   if parts[0].lower() != 'bearer':
        raise AuthError({
            'code':'invalid_header',
            'description': 'Authorization header must start with "Bearer".'
@@ -144,12 +144,13 @@ def requires_auth(permission=''):
         @wraps(f)
         def wrapper(*args, **kwargs):
             token = get_token_auth_header()
-            try:
-                payload = verify_decode_jwt(token)
-            except:
-                abort(401)
+            print(token)
+           
+            payload = verify_decode_jwt(token)
+            print(payload)
             
-            check_permissions(permission, payload)
+            result=check_permissions(permission, payload)
+            print(result)
             return f(payload, *args, **kwargs)
 
         return wrapper
