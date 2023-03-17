@@ -38,12 +38,19 @@ with app.app_context():
 def get_drinks():
     try:
         drinks=Drink.query.all()
-        drinks_short=[drink.short() for drink in drinks]
-
-        return jsonify({
+        
+        if drinks is None:
+            return jsonify({
             "success": True, 
-            "drinks": drinks_short
+            "drinks": []
         })
+        
+        else:
+            drinks_short=[drink.short() for drink in drinks]
+            return jsonify({
+                "success": True, 
+                "drinks": drinks_short
+                })
     except Exception as e:
         print(e)
         abort(404)    
@@ -58,8 +65,8 @@ def get_drinks():
 '''
 #GET /drinks-detail
 @app.route('/drinks-detail',methods=['GET'])
-# @requires_auth('get:drinks-detail')
-def get_drinks_detail():
+@requires_auth('get:drinks-detail')
+def get_drinks_detail(payload):
     try:
         drinks=Drink.query.all()
         drinks_long=[drink.long() for drink in drinks]
@@ -89,12 +96,12 @@ def add_drinks(payload):
     body=request.get_json()
     try:
         title=body.get('title',None)
-        print(title)
+        # print(title)
         recipe=body.get('recipe',None)
-        print(recipe)
+        # print(recipe)
         drink=Drink(title=title,recipe=json.dumps(recipe))
         drink.insert()
-        print(drink.id)
+        # print(drink.id)
         drinks=Drink.query.filter(Drink.id == drink.id).one_or_none()
 
         if drinks is None:
@@ -116,35 +123,30 @@ def add_drinks(payload):
         it should update the corresponding row for <id>
         it should require the 'patch:drinks' permission
         it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the updated drink
+    returns status code 200 and json {"success": True, "drinks": drink} where 
+    drink an array containing only the updated drink
         or appropriate status code indicating reason for failure
 '''
-@app.route('/drinks/<int:id>',methods=['PATCH'])
-@requires_auth("patch:drinks")
-def update_drinks(payload,id):
-    try:
-        drink=Drink.query.filter(Drink.id == id).one_or_none()
-
-        if drink is None:
-            abort(404)
-        else:
-            body=request.get_json()
-            title=body.get('title',None)
-            recipe=body.get('recipe',None)
-            drink.update(title=title,recipe=json.dumps(recipe))
-            
-            drinks=Drink.query.filter(Drink.id == drink.id).one_or_none()
-
-            if drinks is None:
-                abort(404)
-
-            return jsonify({
-            "success": True, 
-            "drinks": [drinks.long()]
-            })
-    except Exception as e:
-        print(e)
-        abort(404) 
+@app.route('/drinks/<int:id>', methods=['PATCH'])
+@requires_auth('patch:drinks')
+def update_drinks(payload, id):
+     try:
+          drink = Drink.query.filter(Drink.id == id).one_or_none()
+          if drink is None:
+               abort(404)
+          else:
+             body = request.get_json()
+             title = body.get('title', None)
+             recipe = body.get('recipe', None)
+             drink.title = title
+             drink.recipe =  json.dumps(recipe)
+             drink.update()
+             drinks = Drink.query.filter(Drink.id == drink.id).one_or_none() 
+             if drinks is None:
+                abort(404)       
+             return jsonify({ 'success': True, 'drinks': [drinks.long()] })
+     except:
+          abort(422)
 
 '''
 @TODO implement endpoint
