@@ -14,25 +14,13 @@ CORS(app)
 with app.app_context():
     db_drop_and_create_all()
 
-# CORS(app,resources={r"/" : {'origins': '*'}})
 
-#After_request decorator to set Access-Control-Allow
-# @app.after_request
-# def after_request(response):
-#     response.headers.add('Access-Control-Allow-Headers','Content-Type,Authorization')
-#     response.headers.add('Access-Control-Allow-Headers', 'GET, POST, PATCH, DELETE, OPTIONS')
-#     return response
+    # GET /drinks
+    #     it is a public endpoint
+    #     it contain only the drink.short() data representation
+    # returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
+    #     or appropriate status code indicating reason for failure
 
-
-# ROUTES
-'''
-@ implement endpoint
-    GET /drinks
-        it should be a public endpoint
-        it should contain only the drink.short() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
-        or appropriate status code indicating reason for failure
-'''
 # GET /drinks
 @app.route('/drinks', methods=['GET'])
 def get_drinks():
@@ -55,14 +43,12 @@ def get_drinks():
         print(e)
         abort(404)    
 
-'''
-@implement endpoint
-    GET /drinks-detail
-        it should require the 'get:drinks-detail' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
-        or appropriate status code indicating reason for failure
-'''
+    # GET /drinks-detail
+    #     it require the 'get:drinks-detail' permission
+    #     it contain the drink.long() data representation
+    # returns status code 200 and json {"success": True, "drinks": drinks} where drinks is the list of drinks
+    #     or appropriate status code indicating reason for failure
+
 #GET /drinks-detail
 @app.route('/drinks-detail',methods=['GET'])
 @requires_auth('get:drinks-detail')
@@ -79,15 +65,13 @@ def get_drinks_detail(payload):
         print(e)
         abort(404)  
 
-'''
-@ implement endpoint
-    POST /drinks
-        it should create a new row in the drinks table
-        it should require the 'post:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
-        or appropriate status code indicating reason for failure
-'''
+    # POST /drinks
+    #     it create a new row in the drinks table
+    #     it require the 'post:drinks' permission
+    #     it contain the drink.long() data representation
+    # returns status code 200 and json {"success": True, "drinks": drink} where drink an array containing only the newly created drink
+    #     or appropriate status code indicating reason for failure
+
 #POST /drinks
 @app.route('/drinks',methods=['POST'])
 @requires_auth("post:drinks")
@@ -115,18 +99,17 @@ def add_drinks(payload):
         print(e)
         abort(422)  
 
-'''
-@TODO implement endpoint
-    PATCH /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should update the corresponding row for <id>
-        it should require the 'patch:drinks' permission
-        it should contain the drink.long() data representation
-    returns status code 200 and json {"success": True, "drinks": drink} where 
-    drink an array containing only the updated drink
-        or appropriate status code indicating reason for failure
-'''
+
+    # PATCH /drinks/<id>
+    #     where <id> is the existing model id
+    #     it respond with a 404 error if <id> is not found
+    #     it update the corresponding row for <id>
+    #     it require the 'patch:drinks' permission
+    #     it contain the drink.long() data representation
+    # returns status code 200 and json {"success": True, "drinks": drink} where 
+    # drink an array containing only the updated drink
+    #     or appropriate status code indicating reason for failure
+
 @app.route('/drinks/<int:id>', methods=['PATCH'])
 @requires_auth('patch:drinks')
 def update_drinks(payload, id):
@@ -142,22 +125,26 @@ def update_drinks(payload, id):
              drink.recipe =  json.dumps(recipe)
              drink.update()
              drinks = Drink.query.filter(Drink.id == drink.id).one_or_none() 
+             
              if drinks is None:
-                abort(404)       
-             return jsonify({ 'success': True, 'drinks': [drinks.long()] })
+                abort(404)
+
+             return jsonify({ 
+                 'success': True, 
+                 'drinks': [drinks.long()] 
+                 })
      except:
           abort(422)
 
-'''
-@TODO implement endpoint
-    DELETE /drinks/<id>
-        where <id> is the existing model id
-        it should respond with a 404 error if <id> is not found
-        it should delete the corresponding row for <id>
-        it should require the 'delete:drinks' permission
-    returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
-        or appropriate status code indicating reason for failure
-'''
+
+    # DELETE /drinks/<id>
+    #     where <id> is the existing model id
+    #     it respond with a 404 error if <id> is not found
+    #     it delete the corresponding row for <id>
+    #     it require the 'delete:drinks' permission
+    # returns status code 200 and json {"success": True, "delete": id} where id is the id of the deleted record
+    #     or appropriate status code indicating reason for failure
+
 @app.route('/drinks/<int:id>',methods=['DELETE'])
 @requires_auth("delete:drinks")
 def delete_drinks(payload,id):
